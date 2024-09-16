@@ -2,6 +2,7 @@
 from typing import Iterable, Hashable, List, Dict, Tuple
 import os
 import sys
+import json
 
 """
 Structure:
@@ -52,10 +53,25 @@ def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[
 
 def to_dict(file : str, file_type: str) -> Dict[str, str]:
     """
-    converts requirement.txt or packages.json to dict = {name: version}
+    converts requirement.txt or packages.json text into dict = {name: version}
     """
     
     file_dict = {}
+
+    if file_type == '.json' :
+        json_dict = json.loads(file)
+        file_dict = json_dict['dependencies']
+        # maybe add json_dict['devDependencies'] in file_dict too?
+
+    elif file_type == '.txt' :
+        lines = file.split('\n')
+        for l in lines :
+            l = l.split('==')
+            name = l[0]
+            version = l[1]
+
+            file_dict[name] = version
+    
     
     return file_dict
 
@@ -76,6 +92,19 @@ def main() -> None :
     then from it run read_dependencies(dependency_files)
     """
     pass
+
+    path1 = R'C:\Users\victo\Documents\uio\Northern_Tech\requirement.txt'
+    path2 = R'C:\Users\victo\Documents\uio\Northern_Tech\packages.json'
+
+    with open(path1) as fd :
+        a = to_dict(fd.read(), '.txt')
+        print(a)
+        fd.close()
+
+    with open(path2) as fd :
+        a = to_dict(fd.read(), '.json')
+        print(a)
+        fd.close()
 
 
 if __name__ == "__main__" :
