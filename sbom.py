@@ -16,7 +16,7 @@ Structure:
 """
 
 
-def get_dependency_files(path: str) -> Tuple[List[str], List[str]] :
+def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
@@ -27,6 +27,7 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str]] :
     """
     dependency_files = []
     file_extensions = []
+    file_paths = []
 
     accepted_files = ['requirement.txt', 'packages.json']
 
@@ -35,13 +36,16 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str]] :
         for f in files :
             if f in accepted_files :
 
-                with open(f'{root}\{f}', 'r') as fd :
+                absolute_path = f'{root}\{f}'
+                with open(absolute_path, 'r') as fd :
                     dependency_files.append(fd.read())
 
                     extension = os.path.splitext(f)[1]
                     file_extensions.append(extension)
+
+                    file_paths.append(absolute_path)
                 
-    return dependency_files, file_extensions
+    return dependency_files, file_extensions, file_paths
 
 def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[str]) -> None:
     """
@@ -55,7 +59,7 @@ def to_dict(file : str, file_type: str) -> Dict[str, str]:
     """
     converts requirement.txt or packages.json text into dict = {name: version}
     """
-    
+
     file_dict = {}
 
     if file_type == '.json' :
@@ -92,19 +96,6 @@ def main() -> None :
     then from it run read_dependencies(dependency_files)
     """
     pass
-
-    path1 = R'C:\Users\victo\Documents\uio\Northern_Tech\requirement.txt'
-    path2 = R'C:\Users\victo\Documents\uio\Northern_Tech\packages.json'
-
-    with open(path1) as fd :
-        a = to_dict(fd.read(), '.txt')
-        print(a)
-        fd.close()
-
-    with open(path2) as fd :
-        a = to_dict(fd.read(), '.json')
-        print(a)
-        fd.close()
 
 
 if __name__ == "__main__" :
