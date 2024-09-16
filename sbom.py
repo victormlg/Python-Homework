@@ -1,6 +1,7 @@
 
 from typing import Iterable, Hashable, List, Dict, Tuple
-
+import os
+import sys
 
 """
 Structure:
@@ -26,6 +27,19 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str]] :
     dependency_files = []
     file_extensions = []
 
+    accepted_files = ['requirement.txt', 'packages.json']
+
+    for root, _, files in os.walk(path) :
+
+        for f in files :
+            if f in accepted_files :
+
+                with open(f'{root}\{f}', 'r') as fd :
+                    dependency_files.append(fd.read())
+
+                    extension = os.path.splitext(f)[1]
+                    file_extensions.append(extension)
+                
     return dependency_files, file_extensions
 
 def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[str]) -> None:
