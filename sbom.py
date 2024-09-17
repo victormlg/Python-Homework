@@ -56,7 +56,13 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
 
 def get_commit(path: str) -> str :
 
-    return subprocess.check_output(['cd', path, '&&','git', 'log', '--format=%H', '-n', '1'], shell=True).decode('utf-8').strip()
+    if not os.path.isdir(path) :
+        raise NotADirectoryError('directory path not valid')
+    
+    try :
+        return subprocess.check_output(['git', 'log', '--format=%H', '-n', '1'], cwd=path).decode('utf-8').strip()
+    except :
+        return None
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
@@ -83,21 +89,34 @@ def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extensi
 
     if file_extension == '.json' :
         json_dict = json.loads(file_content)
+        
+        depencencies = json_dict.get('dependencies')
+        
+        if not depencencies :
+            print(f'No dependencies in {path}')
+            return
 
-        for name, version in json_dict['dependencies'].items() :
+        for name, version in depencencies.items() :
         # maybe add json_dict['devDependencies'] in file_dict too?
             dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path, 'commit': commit_hash}
             sbom_data.append(dependency)
 
     elif file_extension == '.txt' :
-        lines = file_content.split('\n')
+        lines = file_content.split()
         for l in lines :
+
             l = l.split('==') # splits the line on ==
+
+            if len(l) != 2 :
+                raise Exception('Wrong format of requirements.txt')
+
             name = l[0]
-            version = l[1]
+            version = l[1] # crashes if not right format
 
             dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path, 'commit': commit_hash}
             sbom_data.append(dependency)
+            
+
     else :
         raise Exception('the file extension of this document is not supported. It should be .txt or .json.') 
 
@@ -126,11 +145,12 @@ def main() -> None :
     # could use regex to check if input is on the right format
 
     try :
+        if len(sys.argv) != 2 :
+            raise Exception('one argument should be given')
+        
         path = sys.argv[1]
         sbom_data = get_dependency_files(path)
         create_sbom(sbom_data)
-
-        # print(get_commit(R'C:\Users\victo\Documents\uio\Northern_Tech\Python-Homework\new_repos\repo1'))
 
     except (Exception) as e:
         print(f'Error : {e}')
