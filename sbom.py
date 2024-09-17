@@ -29,13 +29,8 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
 
     sbom_data = []
 
-    i =0
+    repo_number =0
     for root, dirs, files in os.walk(root_path) :
-
-        if i==0 :
-            repo_number = len(dirs)
-
-        i+=1
 
         for f in files :
             if f in accepted_files :
@@ -48,13 +43,12 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
                     file_extension = os.path.splitext(f)[1]
 
                     parse_data(sbom_data, file_content, file_extension, path)
-
-                    fd.close()
+                    repo_number +=1
 
     if not sbom_data :
         raise FileNotFoundError('no dependency file found ')
     
-    print(f"Found {repo_number} repositories in '{root_path}'")
+    print(f"Found {repo_number} repositories in '{root_path}'") #counts with repos with a dependency file
 
     return sbom_data
 
@@ -110,8 +104,6 @@ def write_to_csv(sbom_data: List[Dict[str, str]]) -> str:
         
         file_name = fd.name
 
-        fd.close()
-
     return os.path.abspath(file_name)
 
 
@@ -121,8 +113,6 @@ def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
         json.dump(sbom_data, fd, indent='\t')
 
         file_name = fd.name
-
-        fd.close()
     
     return os.path.abspath(file_name)
 
@@ -135,16 +125,8 @@ def main() -> None :
         sbom_data = get_dependency_files(path)
         create_sbom(sbom_data)
 
-    except IndexError as e: # sys.argv
-        print(f'Error 1: {e}')
-        sys.exit(1)
-
-    except FileNotFoundError as e: # sbom_data = [] or file doesn't exist
-        print(f'Error 2: {e}')
-        sys.exit(1)
-
-    except NotADirectoryError as e: # wrong path to dir
-        print(f'Error 3: {e}')
+    except (Exception) as e:
+        print(f'Error : {e}')
         sys.exit(1)
 
 if __name__ == "__main__" :
