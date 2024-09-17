@@ -16,16 +16,14 @@ Structure:
 """
 
 
-def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
+def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packages.json']) -> Dict[str, Dict[str, str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
-    read() them, transform to a dict of dependencies and add it them to sbom_data -> {absolute_path : dependencies}
+    parse them using parse_data() into a dict sbom_data -> {name: {version, type, path}}
     """
 
     sbom_data = {}
-
-    accepted_files = ['requirement.txt', 'packages.json'] #eventually, can make it so that you can choosr which files you want
 
     for root, _, files in os.walk(path) :
 
@@ -47,11 +45,7 @@ def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
-    goes through all the files in dependency_files list (from get_dependency_files),
-    extract the dependencies into a dict (using to_dict) with its corresponding file extension (file_extensions)
-    and create a sbom from them using create_sbom(dependencies)
-
-    for every file in sbom_data, create 
+    for every dependency in sbom_data, write it to a file using write_to_csv and write_to_json
     """
     for absolute_path, dependencies in sbom_data.items() :
         write_to_csv(absolute_path, dependencies)
@@ -59,7 +53,7 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
 
 def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_extension: str, path: str):
     """
-    converts requirement.txt or packages.json text into dict = {name: {version, type, path}}
+    adds data from requirement.txt / packages.json to the sbom_data -> {name: {version, type, path}}
     """
     extension_to_type = {'.json': 'npm', '.txt': 'pip'}
 
