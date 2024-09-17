@@ -44,6 +44,8 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
                     file_extensions.append(extension)
 
                     file_paths.append(absolute_path)
+
+                    fd.close()
                 
     return dependency_files, file_extensions, file_paths
 
