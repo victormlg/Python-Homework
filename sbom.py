@@ -3,6 +3,7 @@ from typing import Iterable, Hashable, List, Dict, Tuple
 import os
 import sys
 import json
+import csv
 
 """
 Structure:
@@ -34,8 +35,8 @@ def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packag
 
                 with open(path, 'r') as fd :
 
-                    file_extension = os.path.splitext(f)[1]
                     file_content = fd.read()
+                    file_extension = os.path.splitext(f)[1]
 
                     parse_data(sbom_data, file_content, file_extension, path)
 
@@ -47,11 +48,10 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
     """
     for every dependency in sbom_data, write it to a file using write_to_csv and write_to_json
     """
-    for absolute_path, dependencies in sbom_data.items() :
-        write_to_csv(absolute_path, dependencies)
-        write_to_json(absolute_path, dependencies)
+    # write_to_csv(sbom_data)
+    # write_to_json(sbom_data)
 
-def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_extension: str, path: str):
+def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
     """
     adds data from requirement.txt / packages.json to the sbom_data -> {name: {version, type, path}}
     """
@@ -77,17 +77,20 @@ def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_ex
     
 
 
-def write_to_csv(absolute_path: str, dependencies: Dict[str, str]) -> None:
+def write_to_csv(sbom_data: Dict[str, Dict[str, str]]) -> None:
     
-    # with open('sbom.csv', 'a') as fd :
-    pass
+    with open('sbom.csv', 'w') as fd :
+        fieldnames = ['name', 'version', 'type', 'path']
+        writer = csv.DictWriter(fd, fieldnames)
+        writer.writeheader()
+        writer.writerows(sbom_data)
 
 
-def write_to_json(absolute_path: str, dependencies: Dict[str, str]) -> None:
+
+def write_to_json(sbom_data: Dict[str, Dict[str, str]]) -> None:
     
-    # with open('sbom.json', 'w') as fd:
-    #     json.dump(dependencies, fd)
-    pass
+    with open('sbom.json', 'w') as fd:
+        json.dump(sbom_data, fd, indent='\t')
 
 
 def main() -> None :
