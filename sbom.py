@@ -20,10 +20,7 @@ def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
-    read() them and append them to dependency_files
-    Appends their file exttension to file_extensions
-
-    len(dependency_files) == len(file_extensions). Each index corresponds to a file and its extension
+    read() them, transform to a dict of dependencies and add it them to sbom_data -> {absolute_path : dependencies}
     """
 
     sbom_data = {}
@@ -48,14 +45,17 @@ def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
                 
     return sbom_data
 
-def read_dependencies(sbom_data: Dict[str, Dict[str, str]]) -> None:
+def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
     goes through all the files in dependency_files list (from get_dependency_files),
     extract the dependencies into a dict (using to_dict) with its corresponding file extension (file_extensions)
     and create a sbom from them using create_sbom(dependencies)
+
+    for every file in sbom_data, create 
     """
     for absolute_path, dependencies in sbom_data.items() :
-        create_sbom(absolute_path, dependencies)
+        write_to_csv()
+        write_to_json()
 
 def to_dict(file : str, file_extension: str) -> Dict[str, str]:
     """
@@ -84,14 +84,10 @@ def to_dict(file : str, file_extension: str) -> Dict[str, str]:
     return file_dict
 
 
-def create_sbom(absolute_path: str, dependencies: Dict[str,str]) -> None: #maybe Hashable type
-    """
-    dependencies is {name: version}
+def write_to_csv(absolute_path: str, dependencies: Dict[str, str]) -> None:
+    pass 
 
-    Creates sbom.csv/json and writes to it
-
-    name | version | absolute_path | type
-    """
+def write_to_json(absolute_path: str, dependencies: Dict[str, str]) -> None:
     pass
 
 
