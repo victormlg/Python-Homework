@@ -1,4 +1,5 @@
 
+import subprocess
 from typing import List, Dict
 import os
 import sys
@@ -30,27 +31,32 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
     sbom_data = []
 
     repo_number =0
-    for root, dirs, files in os.walk(root_path) :
+    for root, _, files in os.walk(root_path) :
 
         for f in files :
             if f in accepted_files :
 
                 path = os.path.join(root, f)
+                commit_hash = get_commit(root)
             
                 with open(path, 'r') as fd :
 
                     file_content = fd.read()
                     file_extension = os.path.splitext(f)[1]
 
-                    parse_data(sbom_data, file_content, file_extension, path)
+                    parse_data(sbom_data, file_content, file_extension, path, commit_hash)
                     repo_number +=1
 
     if not sbom_data :
-        raise FileNotFoundError('no dependency file found ')
+        raise FileNotFoundError('no dependency found ')
     
     print(f"Found {repo_number} repositories in '{root_path}'") #counts with repos with a dependency file
 
     return sbom_data
+
+def get_commit(path: str) -> str :
+
+    return subprocess.check_output(['cd', path, '&&','git', 'log', '--format=%H', '-n', '1'], shell=True).decode('utf-8').strip()
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
@@ -66,18 +72,21 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
     if json_path :
         print(f"Saved SBOM in JSON format to '{json_path}'")
 
-def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
+def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extension: str, path: str, commit_hash: str) -> None:
     """
     adds data from requirements.txt / package.json to the sbom_data -> [{'name':name, 'version':version, 'type':type, 'path':path}]
     """
     extension_to_type = {'.json': 'npm', '.txt': 'pip'}
+
+    if not file_content : # checks if the file is empty
+        return
 
     if file_extension == '.json' :
         json_dict = json.loads(file_content)
 
         for name, version in json_dict['dependencies'].items() :
         # maybe add json_dict['devDependencies'] in file_dict too?
-            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path, 'commit': commit_hash}
             sbom_data.append(dependency)
 
     elif file_extension == '.txt' :
@@ -87,17 +96,15 @@ def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extensi
             name = l[0]
             version = l[1]
 
-            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path, 'commit': commit_hash}
             sbom_data.append(dependency)
     else :
-        raise Exception('the file extension of this document is not supported. It should be .txt or .json.')
-    
-
+        raise Exception('the file extension of this document is not supported. It should be .txt or .json.') 
 
 def write_to_csv(sbom_data: List[Dict[str, str]]) -> str:
     
     with open('sbom.csv', 'w', newline= '') as fd :
-        fieldnames = ['name', 'version', 'type', 'path']
+        fieldnames = ['name', 'version', 'type', 'path', 'commit']
         writer = csv.DictWriter(fd, fieldnames)
         writer.writeheader()
         writer.writerows(sbom_data)
@@ -105,7 +112,6 @@ def write_to_csv(sbom_data: List[Dict[str, str]]) -> str:
         file_name = fd.name
 
     return os.path.abspath(file_name)
-
 
 def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
     
@@ -116,7 +122,6 @@ def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
     
     return os.path.abspath(file_name)
 
-
 def main() -> None :
     # could use regex to check if input is on the right format
 
@@ -124,6 +129,8 @@ def main() -> None :
         path = sys.argv[1]
         sbom_data = get_dependency_files(path)
         create_sbom(sbom_data)
+
+        # print(get_commit(R'C:\Users\victo\Documents\uio\Northern_Tech\Python-Homework\new_repos\repo1'))
 
     except (Exception) as e:
         print(f'Error : {e}')
