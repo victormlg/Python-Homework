@@ -49,13 +49,16 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
                 
     return dependency_files, file_extensions, file_paths
 
-def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[str]) -> None:
+def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[str], file_paths: Iterable[str]) -> None:
     """
     goes through all the files in dependency_files list (from get_dependency_files),
     extract the dependencies into a dict (using to_dict) with its corresponding file extension (file_extensions)
     and create a sbom from them using create_sbom(dependencies)
     """
-    pass 
+    for f, extension, path in zip(dependecy_files, file_extensions, file_paths) :
+        file_dict = to_dict(f, extension)
+
+        create_sbom(file_dict)
 
 def to_dict(file : str, file_type: str) -> Dict[str, str]:
     """
@@ -87,6 +90,8 @@ def create_sbom(dependencies: Dict[str,str]) -> None: #maybe Hashable type
     dependencies is {name: version}
 
     Creates sbom.csv/json and writes to it
+
+    name | version | absolute_path | type
     """
     pass
 
