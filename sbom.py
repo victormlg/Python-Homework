@@ -10,9 +10,9 @@ Structure:
 
    dir
     | repo1
-        | requirement.txt
+        | requirements.txt
     | repo2 
-        |  packages.json
+        |  package.json
 
 """
 
@@ -29,7 +29,13 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
 
     sbom_data = []
 
-    for root, _, files in os.walk(root_path) :
+    i =0
+    for root, dirs, files in os.walk(root_path) :
+
+        if i==0 :
+            repo_number = len(dirs)
+
+        i+=1
 
         for f in files :
             if f in accepted_files :
@@ -47,6 +53,8 @@ def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', '
 
     if not sbom_data :
         raise FileNotFoundError('no dependency file found ')
+    
+    print(f"Found {repo_number} repositories in '{root_path}'")
 
     return sbom_data
 
@@ -57,12 +65,12 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
 
     csv_path = write_to_csv(sbom_data)
     if csv_path :
-        print(f'Saved SBOM in CSV format to {csv_path}')
+        print(f"Saved SBOM in CSV format to '{csv_path}'")
 
     
     json_path = write_to_json(sbom_data)
     if json_path :
-        print(f'Saved SBOM in JSON format to {json_path}')
+        print(f"Saved SBOM in JSON format to '{json_path}'")
 
 def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
     """
