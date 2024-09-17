@@ -16,14 +16,14 @@ Structure:
 """
 
 
-def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
+def get_dependency_files(path: str) -> List[Dict[str, Dict[str, str]]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
     read() them, transform to a dict of dependencies and add it them to sbom_data -> {absolute_path : dependencies}
     """
 
-    sbom_data = {}
+    sbom_data_list = []
 
     accepted_files = ['requirement.txt', 'packages.json'] #eventually, can make it so that you can choosr which files you want
 
@@ -32,18 +32,18 @@ def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
         for f in files :
             if f in accepted_files :
 
-                absolute_path = f'{root}\{f}'
+                path = f'{root}\{f}' # sufficient with os.path?
 
-                with open(absolute_path, 'r') as fd :
+                with open(path, 'r') as fd :
 
                     file_extension = os.path.splitext(f)[1]
-                    dependencies = to_dict(fd.read(), file_extension)
+                    dependencies = to_dict(fd.read(), file_extension, path)
 
-                    sbom_data[absolute_path] = dependencies
+                    sbom_data_list.append(dependencies)
 
                     fd.close()
                 
-    return sbom_data
+    return sbom_data_list
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
@@ -54,29 +54,33 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
     for every file in sbom_data, create 
     """
     for absolute_path, dependencies in sbom_data.items() :
-        write_to_csv()
-        write_to_json()
+        write_to_csv(absolute_path, dependencies)
+        write_to_json(absolute_path, dependencies)
 
-def to_dict(file : str, file_extension: str) -> Dict[str, str]:
+def to_dict(file : str, file_extension: str, path: str) -> Dict[str, str]:
     """
-    converts requirement.txt or packages.json text into dict = {name: version}
+    converts requirement.txt or packages.json text into dict = {name: {version, type, path}}
     """
 
     file_dict = {}
 
+    extension_to_type = {'.json': 'npm', '.txt': 'pip'}
+
     if file_extension == '.json' :
         json_dict = json.loads(file)
-        file_dict = json_dict['dependencies']
+
+        for name, version in json_dict['dependencies'].items() :
         # maybe add json_dict['devDependencies'] in file_dict too?
+            file_dict[name] = {'version': version, 'type' : extension_to_type[file_extension], 'path': path}
 
     elif file_extension == '.txt' :
         lines = file.split('\n')
         for l in lines :
-            l = l.split('==')
+            l = l.split('==') # splits the line on ==
             name = l[0]
             version = l[1]
 
-            file_dict[name] = version
+            file_dict[name] = {'version': version, 'type' : extension_to_type[file_extension], 'path': path}
     else :
         raise Exception('The file extension of this document is not supported. It should be .txt or .json.')
     
@@ -85,9 +89,15 @@ def to_dict(file : str, file_extension: str) -> Dict[str, str]:
 
 
 def write_to_csv(absolute_path: str, dependencies: Dict[str, str]) -> None:
-    pass 
+    
+    # with open('sbom.csv', 'a') as fd :
+    pass
+
 
 def write_to_json(absolute_path: str, dependencies: Dict[str, str]) -> None:
+    
+    # with open('sbom.json', 'w') as fd:
+    #     json.dump(dependencies, fd)
     pass
 
 
