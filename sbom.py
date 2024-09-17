@@ -17,14 +17,14 @@ Structure:
 """
 
 
-def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packages.json']) -> Dict[str, Dict[str, str]] :
+def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packages.json']) -> List[Dict[str, str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
     parse them using parse_data() into a dict sbom_data -> {name: {version, type, path}}
     """
 
-    sbom_data = {}
+    sbom_data = []
 
     for root, _, files in os.walk(path) :
 
@@ -48,10 +48,19 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
     """
     for every dependency in sbom_data, write it to a file using write_to_csv and write_to_json
     """
-    # write_to_csv(sbom_data)
-    # write_to_json(sbom_data)
+    try :
+        path = write_to_csv(sbom_data)
+        print(f'Saved SBOM in CSV format to {path}')
+    except :
+        print(f"error: Couldn't save SBOM in CSV format")
 
-def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
+    try :
+        path = write_to_json(sbom_data)
+        print(f'Saved SBOM in JSON format to {path}')
+    except:
+        print(f"error: Couldn't save SBOM in JSON format")
+
+def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
     """
     adds data from requirement.txt / packages.json to the sbom_data -> {name: {version, type, path}}
     """
@@ -62,7 +71,8 @@ def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_ex
 
         for name, version in json_dict['dependencies'].items() :
         # maybe add json_dict['devDependencies'] in file_dict too?
-            sbom_data[name] = {'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            sbom_data.append(dependency)
 
     elif file_extension == '.txt' :
         lines = file_content.split('\n')
@@ -71,26 +81,38 @@ def parse_data(sbom_data: Dict[str, Dict[str, str]], file_content : str, file_ex
             name = l[0]
             version = l[1]
 
-            sbom_data[name] = {'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path}
+            sbom_data.append(dependency)
     else :
-        raise Exception('The file extension of this document is not supported. It should be .txt or .json.')
+        raise Exception('error: The file extension of this document is not supported. It should be .txt or .json.')
     
 
 
-def write_to_csv(sbom_data: Dict[str, Dict[str, str]]) -> None:
+def write_to_csv(sbom_data: List[Dict[str, str]]) -> str:
     
-    with open('sbom.csv', 'w') as fd :
+    with open('sbom.csv', 'w', newline= '') as fd :
         fieldnames = ['name', 'version', 'type', 'path']
         writer = csv.DictWriter(fd, fieldnames)
         writer.writeheader()
         writer.writerows(sbom_data)
+        
+        file_name = fd.name
+
+        fd.close()
+
+    return os.path.abspath(file_name)
 
 
-
-def write_to_json(sbom_data: Dict[str, Dict[str, str]]) -> None:
+def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
     
     with open('sbom.json', 'w') as fd:
         json.dump(sbom_data, fd, indent='\t')
+
+        file_name = fd.name
+
+        fd.close()
+    
+    return os.path.abspath(file_name)
 
 
 def main() -> None :
@@ -99,7 +121,8 @@ def main() -> None :
     and run dependency_files = get_dependency_files(path)
     then from it run read_dependencies(dependency_files)
     """
-    pass
+    a = get_dependency_files(R'C:\Users\victo\Documents\uio\Northern_Tech\ro0t')
+    create_sbom(a)
 
 
 if __name__ == "__main__" :
