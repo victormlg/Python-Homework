@@ -61,8 +61,9 @@ def get_commit(path: str) -> str :
     
     try :
         return subprocess.check_output(['git', 'log', '--format=%H', '-n', '1'], cwd=path).decode('utf-8').strip()
+        # git error shows up when running the command on normal dir (not git repo)
     except :
-        return None
+        return 'None'
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
@@ -107,11 +108,11 @@ def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extensi
 
             l = l.split('==') # splits the line on ==
 
-            if len(l) != 2 :
-                raise Exception('Wrong format of requirements.txt')
-
+            if len(l) == 2 :
+                version = l[1] 
+            else :
+                version = 'None' # None if doesn't exist OR not correct format
             name = l[0]
-            version = l[1] # crashes if not right format
 
             dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path, 'commit': commit_hash}
             sbom_data.append(dependency)
@@ -142,7 +143,6 @@ def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
     return os.path.abspath(file_name)
 
 def main() -> None :
-    # could use regex to check if input is on the right format
 
     try :
         if len(sys.argv) != 2 :
