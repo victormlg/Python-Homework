@@ -31,17 +31,20 @@ def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packag
         for f in files :
             if f in accepted_files :
 
-                path = f'{root}\{f}' # sufficient with os.path?
+                path = f'{root}\{f}' 
 
-                with open(path, 'r') as fd :
+                try :
+                    with open(path, 'r') as fd :
 
-                    file_content = fd.read()
-                    file_extension = os.path.splitext(f)[1]
+                        file_content = fd.read()
+                        file_extension = os.path.splitext(f)[1]
 
-                    parse_data(sbom_data, file_content, file_extension, path)
+                        parse_data(sbom_data, file_content, file_extension, path)
 
-                    fd.close()
-                
+                        fd.close()
+                except : 
+                    print("error: Coundn't parse the file at {path}")
+
     return sbom_data
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
@@ -52,7 +55,7 @@ def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of t
         path = write_to_csv(sbom_data)
         print(f'Saved SBOM in CSV format to {path}')
     except :
-        print(f"error: Couldn't save SBOM in CSV format")
+        print("error: Couldn't save SBOM in CSV format")
 
     try :
         path = write_to_json(sbom_data)
