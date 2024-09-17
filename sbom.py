@@ -16,7 +16,7 @@ Structure:
 """
 
 
-def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
+def get_dependency_files(path: str) -> Dict[str, Dict[str, str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirement.txt" or "packages.json"
@@ -25,11 +25,10 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
 
     len(dependency_files) == len(file_extensions). Each index corresponds to a file and its extension
     """
-    dependency_files = []
-    file_extensions = []
-    file_paths = []
 
-    accepted_files = ['requirement.txt', 'packages.json']
+    sbom_data = {}
+
+    accepted_files = ['requirement.txt', 'packages.json'] #eventually, can make it so that you can choosr which files you want
 
     for root, _, files in os.walk(path) :
 
@@ -37,42 +36,40 @@ def get_dependency_files(path: str) -> Tuple[List[str], List[str], List[str]] :
             if f in accepted_files :
 
                 absolute_path = f'{root}\{f}'
+
                 with open(absolute_path, 'r') as fd :
-                    dependency_files.append(fd.read())
 
-                    extension = os.path.splitext(f)[1]
-                    file_extensions.append(extension)
+                    file_extension = os.path.splitext(f)[1]
+                    dependencies = to_dict(fd.read(), file_extension)
 
-                    file_paths.append(absolute_path)
+                    sbom_data[absolute_path] = dependencies
 
                     fd.close()
                 
-    return dependency_files, file_extensions, file_paths
+    return sbom_data
 
-def read_dependencies(dependecy_files: Iterable[str], file_extensions: Iterable[str], file_paths: Iterable[str]) -> None:
+def read_dependencies(sbom_data: Dict[str, Dict[str, str]]) -> None:
     """
     goes through all the files in dependency_files list (from get_dependency_files),
     extract the dependencies into a dict (using to_dict) with its corresponding file extension (file_extensions)
     and create a sbom from them using create_sbom(dependencies)
     """
-    for f, extension, path in zip(dependecy_files, file_extensions, file_paths) :
-        file_dict = to_dict(f, extension)
+    for absolute_path, dependencies in sbom_data.items() :
+        create_sbom(absolute_path, dependencies)
 
-        create_sbom(file_dict)
-
-def to_dict(file : str, file_type: str) -> Dict[str, str]:
+def to_dict(file : str, file_extension: str) -> Dict[str, str]:
     """
     converts requirement.txt or packages.json text into dict = {name: version}
     """
 
     file_dict = {}
 
-    if file_type == '.json' :
+    if file_extension == '.json' :
         json_dict = json.loads(file)
         file_dict = json_dict['dependencies']
         # maybe add json_dict['devDependencies'] in file_dict too?
 
-    elif file_type == '.txt' :
+    elif file_extension == '.txt' :
         lines = file.split('\n')
         for l in lines :
             l = l.split('==')
@@ -80,12 +77,14 @@ def to_dict(file : str, file_type: str) -> Dict[str, str]:
             version = l[1]
 
             file_dict[name] = version
+    else :
+        raise Exception('The file extension of this document is not supported. It should be .txt or .json.')
     
     
     return file_dict
 
 
-def create_sbom(dependencies: Dict[str,str]) -> None: #maybe Hashable type
+def create_sbom(absolute_path: str, dependencies: Dict[str,str]) -> None: #maybe Hashable type
     """
     dependencies is {name: version}
 
