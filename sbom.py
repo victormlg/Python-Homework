@@ -1,5 +1,5 @@
 
-from typing import Iterable, Hashable, List, Dict, Tuple
+from typing import List, Dict
 import os
 import sys
 import json
@@ -17,55 +17,56 @@ Structure:
 """
 
 
-def get_dependency_files(path: str, accepted_files = ['requirement.txt', 'packages.json']) -> List[Dict[str, str]] :
+def get_dependency_files(root_path: str, accepted_files = ['requirements.txt', 'package.json']) -> List[Dict[str, str]] :
     """
     from the dir that the path links to, iterate through all its subdirs and files
-    find all the files called "requirement.txt" or "packages.json"
-    parse them using parse_data() into a dict sbom_data -> {name: {version, type, path}}
+    find all the files called "requirements.txt" or "package.json"
+    parse them using parse_data() into a list sbom_data -> [{'name':name, 'version':version, 'type':type, 'path':path}]
     """
+
+    if not os.path.isdir(root_path) :
+        raise NotADirectoryError('directory path not valid')
 
     sbom_data = []
 
-    for root, _, files in os.walk(path) :
+    for root, _, files in os.walk(root_path) :
 
         for f in files :
             if f in accepted_files :
 
-                path = f'{root}\{f}' 
+                path = os.path.join(root, f)
+            
+                with open(path, 'r') as fd :
 
-                try :
-                    with open(path, 'r') as fd :
+                    file_content = fd.read()
+                    file_extension = os.path.splitext(f)[1]
 
-                        file_content = fd.read()
-                        file_extension = os.path.splitext(f)[1]
+                    parse_data(sbom_data, file_content, file_extension, path)
 
-                        parse_data(sbom_data, file_content, file_extension, path)
+                    fd.close()
 
-                        fd.close()
-                except : 
-                    print("error: Coundn't parse the file at {path}")
+    if not sbom_data :
+        raise FileNotFoundError('no dependency file found ')
 
     return sbom_data
 
 def create_sbom(sbom_data: Dict[str, Dict[str, str]]) -> None: #maybe input of type Hashable instead
     """
-    for every dependency in sbom_data, write it to a file using write_to_csv and write_to_json
+    converts sbom_data into sbom.csv and sbom.json
     """
-    try :
-        path = write_to_csv(sbom_data)
-        print(f'Saved SBOM in CSV format to {path}')
-    except :
-        print("error: Couldn't save SBOM in CSV format")
 
-    try :
-        path = write_to_json(sbom_data)
-        print(f'Saved SBOM in JSON format to {path}')
-    except:
-        print(f"error: Couldn't save SBOM in JSON format")
+    csv_path = write_to_csv(sbom_data)
+    if csv_path :
+        print(f'Saved SBOM in CSV format to {csv_path}')
+
+    
+    json_path = write_to_json(sbom_data)
+    if json_path :
+        print(f'Saved SBOM in JSON format to {json_path}')
 
 def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extension: str, path: str) -> None:
     """
-    adds data from requirement.txt / packages.json to the sbom_data -> {name: {version, type, path}}
+    adds data from requirements.txt / package.json to the sbom_data -> [{'name':name, 'version':version, 'type':type, 'path':path}]
     """
     extension_to_type = {'.json': 'npm', '.txt': 'pip'}
 
@@ -87,7 +88,7 @@ def parse_data(sbom_data: List[Dict[str, str]], file_content : str, file_extensi
             dependency = {'name': name, 'version': version, 'type' : extension_to_type[file_extension], 'path': path}
             sbom_data.append(dependency)
     else :
-        raise Exception('error: The file extension of this document is not supported. It should be .txt or .json.')
+        raise Exception('the file extension of this document is not supported. It should be .txt or .json.')
     
 
 
@@ -119,15 +120,24 @@ def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
 
 
 def main() -> None :
-    """
-    get path from argument (sys.argv)
-    and run dependency_files = get_dependency_files(path)
-    then from it run read_dependencies(dependency_files)
-    """
     # could use regex to check if input is on the right format
 
-    pass
+    try :
+        path = sys.argv[1]
+        sbom_data = get_dependency_files(path)
+        create_sbom(sbom_data)
 
+    except IndexError as e: # sys.argv
+        print(f'Error 1: {e}')
+        sys.exit(1)
+
+    except FileNotFoundError as e: # sbom_data = [] or file doesn't exist
+        print(f'Error 2: {e}')
+        sys.exit(1)
+
+    except NotADirectoryError as e: # wrong path to dir
+        print(f'Error 3: {e}')
+        sys.exit(1)
 
 if __name__ == "__main__" :
     main()
