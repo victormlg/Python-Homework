@@ -121,8 +121,9 @@ def main() -> None :
     and run dependency_files = get_dependency_files(path)
     then from it run read_dependencies(dependency_files)
     """
-    a = get_dependency_files(R'C:\Users\victo\Documents\uio\Northern_Tech\ro0t')
-    create_sbom(a)
+    # could use regex to check if input is on the right format
+
+    pass
 
 
 if __name__ == "__main__" :
