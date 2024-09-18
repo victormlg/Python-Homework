@@ -1,5 +1,5 @@
 import subprocess
-from typing import List, Dict
+from typing import Dict
 import os
 import sys
 import json
@@ -18,8 +18,8 @@ Structure:
 
 
 def get_dependency_files(
-    root_path: str, accepted_files=["requirements.txt", "package.json"]
-) -> List[Dict[str, str]]:
+    root_path: str, accepted_files=["requirements.txt", "package.json", "package-lock.json"]
+) -> Dict[str, Dict[str, str]]:
     """
     from the dir that the path links to, iterate through all its subdirs and files
     find all the files called "requirements.txt" or "package.json"
@@ -29,7 +29,7 @@ def get_dependency_files(
     if not os.path.isdir(root_path):
         raise NotADirectoryError("directory path not valid")
 
-    sbom_data = []
+    sbom_data = {}
 
     repo_number = 0
     for root, _, files in os.walk(root_path):
@@ -56,7 +56,7 @@ def get_dependency_files(
     print(
         f"Found {repo_number} repositories in '{root_path}'"
     ) 
-
+    print(len(sbom_data))
     return sbom_data
 
 
@@ -92,7 +92,7 @@ def create_sbom(
 
 
 def parse_data(
-    sbom_data: List[Dict[str, str]],
+    sbom_data: Dict[str, Dict[str, str]],
     file_content: str,
     file_extension: str,
     path: str,
@@ -108,9 +108,8 @@ def parse_data(
         return
 
     if file_extension == ".json":
-        json_dict = json.loads(file_content)
-
-        depencencies = json_dict.get("dependencies")
+        
+        depencencies = unpack_json(file_content)    
 
         if not depencencies:
             print(f"No dependencies in {path}")
@@ -124,7 +123,7 @@ def parse_data(
                 "path": path,
                 "commit": commit_hash,
             }
-            sbom_data.append(dependency)
+            sbom_data[name] = dependency
 
     elif file_extension == ".txt":
         lines = file_content.split()
@@ -145,28 +144,53 @@ def parse_data(
                 "path": path,
                 "commit": commit_hash,
             }
-            sbom_data.append(dependency)
+            sbom_data[name] = dependency
 
     else:
         raise Exception(
             "the file extension of this document is not supported. It should be .txt or .json."
         )
+    
+def unpack_json(file_content: str) -> Dict[str, str]:
+    json_dict = json.loads(file_content)
+
+    # if the file is package.json
+    package_dependencies = json_dict.get("dependencies")
+    if package_dependencies: 
+        return package_dependencies
+
+    # if the file is package-lock.json
+    packages = json_dict.get('packages')
+    if not packages :
+        return 
+    
+    package_lock_dependencies = {}
+    
+    for package in packages.values() :
+        dependencies = package.get('dependencies')
+        if dependencies :
+            package_lock_dependencies |= dependencies #merges the dependency dicts from all the different packages
+    
+    return package_lock_dependencies
+
+    
 
 
-def write_to_csv(sbom_data: List[Dict[str, str]]) -> str:
+def write_to_csv(sbom_data: Dict[str, Dict[str, str]]) -> str:
 
     with open("sbom.csv", "w", newline="") as fd:
+        data_list = [dependency for dependency in sbom_data.values()] #unpacks dicts of the sbom_data into a list, so that it can be used by the csv writer
         fieldnames = ["name", "version", "type", "path", "commit"]
         writer = csv.DictWriter(fd, fieldnames)
         writer.writeheader()
-        writer.writerows(sbom_data)
+        writer.writerows(data_list)
 
         file_name = fd.name
 
     return os.path.abspath(file_name)
 
 
-def write_to_json(sbom_data: List[Dict[str, str]]) -> str:
+def write_to_json(sbom_data: Dict[str, Dict[str, str]]) -> str:
 
     with open("sbom.json", "w") as fd:
         json.dump(sbom_data, fd, indent="\t")
