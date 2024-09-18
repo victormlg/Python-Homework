@@ -55,7 +55,7 @@ def get_dependency_files(
         raise FileNotFoundError("no dependency found ")
 
     print(f"Found {repo_number} repositories in '{root_path}'")
-    print(len(sbom_data))
+
     return sbom_data
 
 
@@ -114,7 +114,7 @@ def parse_data(
 
             l = l.split("==")  # splits the line on ==
 
-            if len(l) == 2:  # checks that the line is on correct format 
+            if len(l) == 2:  # checks that the line is in correct format 
                 version = l[1]
             else:
                 version = "None"
