@@ -9,9 +9,9 @@ To run the programme, run:
 
 ```python3 sbom.py path```
 
-Where he path can be absolute or relative.
+Path is the path to a directory containing several repositories. The path can be absolute or relative.
 
-The programme will iterate through all the repos and find "package.json", "package-lock.json" or "requirements.txt". It will extract their dependencies and create a SBOM (Software bill of materials) which will be written to sbom.csv and sbom.json. 
+The programme will iterate through all the repositories and find "package.json", "package-lock.json" or "requirements.txt". It will extract their dependencies and create a SBOM (Software bill of materials) which will be written to sbom.csv and sbom.json. 
 
 The SBOM contains the name, version, type, absolute path and git commit hash for every dependency.
 
