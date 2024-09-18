@@ -32,7 +32,7 @@ def get_dependency_files(
 
     sbom_data = {}
 
-    repo_number = 0
+    repo_count = 0
     for root, _, files in os.walk(root_path): # iterates through the subdirs and the files of the under the root
 
         for f in files:
@@ -49,12 +49,12 @@ def get_dependency_files(
                     parse_data(
                         sbom_data, file_content, file_extension, path, commit_hash
                     )
-                    repo_number += 1
+                    repo_count += 1
 
     if not sbom_data:
         raise FileNotFoundError("no dependency found ")
 
-    print(f"Found {repo_number} repositories in '{root_path}'")
+    print(f"Found {repo_count} repositories in '{root_path}'")
 
     return sbom_data
 
@@ -136,6 +136,10 @@ def parse_data(
 
 
 def unpack_json(file_content: str) -> Dict[str, str]:
+    """
+    returns the data of the files
+    Normalizes, so that the output is the same if the file is package.json or package-lock.json
+    """
     json_dict = json.loads(file_content)
 
     # if the file is package.json
