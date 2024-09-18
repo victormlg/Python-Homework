@@ -23,8 +23,8 @@ def get_dependency_files(
 ) -> Dict[str, Dict[str, str]]:
     """
     from the dir that the path links to, iterate through all its subdirs and files
-    find all the files called "requirements.txt" or "package.json"
-    parse them using parse_data() into a list sbom_data -> [{'name':name, 'version':version, 'type':type, 'path':path}]
+    find all the files called "requirements.txt", "package.json" or "package-lock.json"
+    parse them using parse_data() into sbom_data ->  {name: {'name':name, 'version':version, 'type':type, 'path':path}}
     """
 
     if not os.path.isdir(root_path):
