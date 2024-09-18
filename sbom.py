@@ -55,7 +55,7 @@ def get_dependency_files(
 
     print(
         f"Found {repo_number} repositories in '{root_path}'"
-    )  # counts with repos with a dependency file
+    ) 
 
     return sbom_data
 
@@ -71,7 +71,6 @@ def get_commit(path: str) -> str:
             .decode("utf-8")
             .strip()
         )
-        # git error shows up when running the command on normal dir (not git repo)
     except:
         return "None"
 
@@ -105,6 +104,7 @@ def parse_data(
     extension_to_type = {".json": "npm", ".txt": "pip"}
 
     if not file_content:  # checks if the file is empty
+        print(f"File at '{path}' is empty")
         return
 
     if file_extension == ".json":
@@ -117,7 +117,6 @@ def parse_data(
             return
 
         for name, version in depencencies.items():
-            # maybe add json_dict['devDependencies'] in file_dict too?
             dependency = {
                 "name": name,
                 "version": version,
